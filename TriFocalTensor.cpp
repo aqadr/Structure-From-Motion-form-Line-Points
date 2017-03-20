@@ -22,39 +22,8 @@ namespace sfm
 		}
 	}
 
-
-	///////////////////////////////////////////////////////////
-	void TrifocalTensor::computeMeanAndVariance(const std::vector<VectorXd> &vPts,
-		VectorXd &mean, VectorXd &variance)
-	{
-		if (vPts.size() <= 0)
-			return;
-
-		int cols = vPts.size();
-		VectorXd::Index n = vPts.at(0).rows();
-		double m = static_cast<double>(vPts.size());
-
-		MatrixXd A(n, cols);
-		for (size_t i = 0; i<cols; ++i)
-		{
-			A.col(i) = vPts[i];
-		}
-
-		mean = variance = VectorXd::Zero(n);
-
-		for (MatrixXd::Index i = 0; i < n; ++i)
-		{
-			mean(i) += A.row(i).array().sum();
-			variance(i) += (A.row(i).array() * A.row(i).array()).array().sum();
-		}
-
-		mean /= m;
-		for (MatrixXd::Index i = 0; i <n; ++i)
-		{
-			variance(i) = variance(i) / m - Square(mean(i));
-		}
-	}
-
+	
+	
 
 	/////////////////////////////////////////////////////////////
 	bool TrifocalTensor::normalize2DLines(std::vector<Eigen::Vector4d> &vPtsEnd,
@@ -297,253 +266,175 @@ namespace sfm
 	
 
 
-////////////////////////////////////////////////////////////
-bool TrifocalTensor::computeTrifocalTensorPoints(const std::vector<Eigen::Vector2d> &vImPts1_,
-	const std::vector<Eigen::Vector2d> &vImPts2_,
-	const std::vector<Eigen::Vector2d> &vImPts3_)
-{
-	if (vImPts1_.size() != vImPts2_.size() || vImPts1_.size() != vImPts3_.size())
-	return false;
-
-	if (vImPts1_.size() <= 7)
-	return false;
-
-	std::vector<Eigen::Vector2d> vImPts1 = vImPts1_;
-	std::vector<Eigen::Vector2d> vImPts2 = vImPts2_;
-	std::vector<Eigen::Vector2d> vImPts3 = vImPts3_;
-
-	Matrix3d H1, H2, H3;
-	sfm::normalize2DPoints(vImPts1, H1);
-	sfm::normalize2DPoints(vImPts2, H2);
-	sfm::normalize2DPoints(vImPts3, H3);
-
-	//now create the n*27 matrix
-	//each set of points correspondences provide 4 equations
-	int n = 4 * vImPts1_.size();
-	Eigen::MatrixXd A = MatrixXd::Zero(n, 27);
-	//populate the matrix with the points correspondences
-	for (size_t ii = 0; ii<vImPts1.size(); ii++)
+	////////////////////////////////////////////////////////////
+	bool TrifocalTensor::computeTrifocalTensorPoints(const std::vector<Eigen::Vector2d> &vImPts1_,
+		const std::vector<Eigen::Vector2d> &vImPts2_,
+		const std::vector<Eigen::Vector2d> &vImPts3_)
 	{
-		Vector3d pt1 = Vector3d(vImPts1[ii][0], vImPts1[ii][1], 1.0);
-		Vector3d pt2 = Vector3d(vImPts2[ii][0], vImPts2[ii][1], 1.0);
-		Vector3d pt3 = Vector3d(vImPts3[ii][0], vImPts3[ii][1], 1.0);
+		if (vImPts1_.size() != vImPts2_.size() || vImPts1_.size() != vImPts3_.size())
+		return false;
 
-		size_t i = 4 * ii;
-		//equation number 1
-		A(i, 0) = pt1[0];
-		A(i, 2) = -pt1[0] * pt3[0];
-		A(i, 6) = -pt1[0] * pt2[0];
-		A(i, 8) = (pt1[0] * pt2[0] * pt3[0]);
+		if (vImPts1_.size() <= 7)
+		return false;
 
-		A(i, 9) = pt1[1];
-		A(i, 11) = -pt1[1] * pt3[0];
-		A(i, 15) = -pt1[1] * pt2[0];
-		A(i, 17) = (pt1[1] * pt2[0] * pt3[0]);
+		std::vector<Eigen::Vector2d> vImPts1 = vImPts1_;
+		std::vector<Eigen::Vector2d> vImPts2 = vImPts2_;
+		std::vector<Eigen::Vector2d> vImPts3 = vImPts3_;
 
-		A(i, 18) = pt1[2];
-		A(i, 20) = -pt1[2] * pt3[0];;
-		A(i, 24) = -pt1[2] * pt2[0];
-		A(i, 26) = (pt1[2] * pt2[0] * pt3[0]);
+		Matrix3d H1, H2, H3;
+		sfm::normalize2DPoints(vImPts1, H1);
+		sfm::normalize2DPoints(vImPts2, H2);
+		sfm::normalize2DPoints(vImPts3, H3);
 
-		//equation number 2
-		A(i + 1, 3) = pt1[0];
-		A(i + 1, 5) = -pt1[0] * pt3[0];
-		A(i + 1, 6) = -pt1[0] * pt2[1];
-		A(i + 1, 8) = pt1[0] * pt2[1] * pt3[0];
-
-		A(i + 1, 12) = pt1[1];
-		A(i + 1, 14) = -pt1[1] * pt3[0];
-		A(i + 1, 15) = -pt1[1] * pt2[1];
-		A(i + 1, 17) = pt1[1] * pt2[1] * pt3[0];
-
-		A(i + 1, 21) = pt1[2];
-		A(i + 1, 23) = -pt1[2] * pt3[0];
-		A(i + 1, 24) = -pt1[2] * pt2[1];
-		A(i + 1, 26) = pt1[2] * pt2[1] * pt3[0];
-
-		//equation number 3
-		A(i + 2, 1) = pt1[0];
-		A(i + 2, 2) = -pt1[0] * pt3[1];
-		A(i + 2, 7) = -pt1[0] * pt2[0];
-		A(i + 2, 8) = pt1[0] * pt2[0] * pt3[1];
-
-		A(i + 2, 10) = pt1[1];
-		A(i + 2, 11) = -pt1[1] * pt3[1];
-		A(i + 2, 16) = -pt1[1] * pt2[0];
-		A(i + 2, 17) = pt1[1] * pt2[0] * pt3[1];
-
-		A(i + 2, 19) = pt1[2];
-		A(i + 2, 20) = -pt1[2] * pt3[1];
-		A(i + 2, 25) = -pt1[2] * pt2[0];
-		A(i + 2, 26) = pt1[2] * pt2[0] * pt3[1];
-
-		//equation number 4
-		A(i + 3, 4) = pt1[0];
-		A(i + 3, 5) = -pt1[0] * pt3[1];
-		A(i + 3, 7) = -pt1[0] * pt2[1];
-		A(i + 3, 8) = pt1[0] * pt2[1] * pt3[1];
-
-		A(i + 3, 13) = pt1[1];
-		A(i + 3, 14) = -pt1[1] * pt3[1];
-		A(i + 3, 16) = -pt1[1] * pt2[1];
-		A(i + 3, 17) = pt1[1] * pt2[1] * pt3[1];
-
-		A(i + 3, 22) = pt1[2];
-		A(i + 3, 23) = -pt1[2] * pt3[1];
-		A(i + 3, 25) = -pt1[2] * pt2[1];
-		A(i + 3, 26) = pt1[2] * pt2[1] * pt3[1];
-
-	}
-
-	/*QString filename = "C:/SFM_Simulation/output/MatA.txt";
-	QFile file(filename);
-	if (file.open(QIODevice::ReadWrite))
-	{
-		QTextStream stream(&file);
-		for (size_t ii = 0; ii < A.rows(); ++ii)
+		//now create the n*27 matrix
+		//each set of points correspondences provide 4 equations
+		int n = 4 * vImPts1_.size();
+		Eigen::MatrixXd A = MatrixXd::Zero(n, 27);
+		//populate the matrix with the points correspondences
+		for (size_t ii = 0; ii<vImPts1.size(); ii++)
 		{
-			for (size_t jj = 0; jj < A.cols(); ++jj)
-			{
-				stream << QString::number(A(ii, jj));
-				stream << "\t";
-			}
-				stream << "\n";
-		}
-	}
-	file.close();
-	*/
-	Eigen::JacobiSVD<MatrixXd> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
+			Vector3d pt1 = Vector3d(vImPts1[ii][0], vImPts1[ii][1], 1.0);
+			Vector3d pt2 = Vector3d(vImPts2[ii][0], vImPts2[ii][1], 1.0);
+			Vector3d pt3 = Vector3d(vImPts3[ii][0], vImPts3[ii][1], 1.0);
 
-	//Extract trifocal tensor from the column of V corresponding to
-	//smallest singular value.
-	Eigen::Matrix<double, 27, 1> t = svd.matrixV().col(26);
-	
-	//crate the trifocal tensor matrix from the 27 vector
-	Eigen::Matrix<double, 3, 9>T0;
-	Eigen::Matrix<double, 3, 3> T1, T2, T3;
-	T1 << t(0, 0), t(1, 0), t(2, 0), t(3, 0), t(4, 0), t(5, 0), t(6, 0), t(7, 0), t(8, 0);
-	T2 << t(9, 0), t(10, 0), t(11, 0), t(12, 0), t(13, 0), t(14, 0), t(15, 0), t(16, 0), t(17, 0);
-	T3 << t(18, 0), t(19, 0), t(20, 0), t(21, 0), t(22, 0), t(23, 0), t(24, 0), t(25, 0), t(26, 0);
-
-
-	T0.block<3, 3>(0, 0) = T1;
-	T0.block<3, 3>(0, 3) = T2;
-	T0.block<3, 3>(0, 6) = T3;
-
-
-	//Ensure that that trifocal tensor is geomatrically valid by retrieving
-	//its epipoles and performing algebraic minimization
-
-	Eigen::Vector3d e1, e2;
-	epipolsFromTrifocalTensor(T0, e1, e2);
-	//std::cout << "check epipoles from trifocaltensor :" << e1 << "\n" << e2 << std::endl;
-	Eigen::MatrixXd E;
-	computeEFromEpipoles(E, e1, e2);
-	Eigen::VectorXd tFinal;
-	sfm::constraintMinimization(A, E, tFinal);
-	
-
-	Eigen::Matrix<double, 3, 9>TFinal;
-	T1 << tFinal(0, 0), tFinal(1, 0), tFinal(2, 0), tFinal(3, 0), tFinal(4, 0), tFinal(5, 0), tFinal(6, 0), tFinal(7, 0), tFinal(8, 0);
-	T2 << tFinal(9, 0), tFinal(10, 0), tFinal(11, 0), tFinal(12, 0), tFinal(13, 0), tFinal(14, 0), tFinal(15, 0), tFinal(16, 0), tFinal(17, 0);
-	T3 << tFinal(18, 0), tFinal(19, 0), tFinal(20, 0), tFinal(21, 0), tFinal(22, 0), tFinal(23, 0), tFinal(24, 0), tFinal(25, 0), tFinal(26, 0);
-	TFinal.block<3, 3>(0, 0) = T1;
-	TFinal.block<3, 3>(0, 3) = T2;
-	TFinal.block<3, 3>(0, 6) = T3;
-
-	
-	Matrix3d inv_H2 = H2.inverse();
-	Matrix3d inv_H3 = H3.inverse();
-	Matrix3d Y1 = inv_H2*T1*inv_H3.transpose();
-	Matrix3d Y2 = inv_H2*T2*inv_H3.transpose();
-	Matrix3d Y3 = inv_H2*T3*inv_H3.transpose();
-
-	Matrix3d T1_F = H1(0, 0)*Y1 + H1(1, 0)*Y2 + H1(2, 0)*Y3;
-	Matrix3d T2_F = H1(0, 1)*Y1 + H1(1, 1)*Y2 + H1(2, 1)*Y3;
-	Matrix3d T3_F = H1(0, 2)*Y1 + H1(1, 2)*Y2 + H1(2, 2)*Y3;
-
-	std::cout << "check T: " << T1_F <<" \n\n"<<T2_F<<"  \n\n"<<T3_F<< std::endl;
-}
-
-	//! 
-	/*void TrifocalTensor::computeLineTrifocalTensor(Eigen::MatrixXd &T,
-		const std::vector<Eigen::Vector3d> &vLine1,
-		const std::vector<Eigen::Vector3d> &vLine2,
-		const std::vector<Eigen::Vector3d> &vLine3)
-	{
-		if (vLine1.size() != vLine2.size() || vLine2.size() != vLine2.size())
-			std::cout << "we have big issues: " << std::endl;
-
-		if (vLine1.size() < 13)
-			std::cout << "can not generate the tri focal tensor :" << std::endl;
-
-		int N = vLine1.size();
-		MatrixXd A = Eigen::MatrixXd::Zero(N * 2, 27);
-
-		for (size_t i = 0; i < N; ++i)
-		{
-			Vector3d l1 = vLine1[i];
-			Vector3d l2 = vLine2[i];
-			Vector3d l3 = vLine3[i];
-
-			size_t ii = 2 * i;
-
+			size_t i = 4 * ii;
 			//equation number 1
-			A(ii, 9) = -l1[2] * l2[0] * l3[0];
-			A(ii, 12) = -l1[2] * l2[1] * l3[0];
-			A(ii, 15) = -l1[2] * l2[2] * l3[0];
+			A(i, 0) = pt1[0];
+			A(i, 2) = -pt1[0] * pt3[0];
+			A(i, 6) = -pt1[0] * pt2[0];
+			A(i, 8) = (pt1[0] * pt2[0] * pt3[0]);
 
-			A(ii, 10) = -l1[2] * l2[0] * l3[1];
-			A(ii, 13) = -l1[2] * l2[1] * l3[1];
-			A(ii, 16) = -l1[2] * l2[2] * l3[1];
+			A(i, 9) = pt1[1];
+			A(i, 11) = -pt1[1] * pt3[0];
+			A(i, 15) = -pt1[1] * pt2[0];
+			A(i, 17) = (pt1[1] * pt2[0] * pt3[0]);
 
-			A(ii, 11) = -l1[2] * l2[0] * l3[2];
-			A(ii, 14) = -l1[2] * l2[1] * l3[2];
-			A(ii, 17) = -l1[2] * l2[2] * l3[2];
-
-			A(ii, 18) = l1[1] * l2[0] * l3[0];
-			A(ii, 21) = l1[1] * l2[1] * l3[0];
-			A(ii, 24) = l1[1] * l2[2] * l3[0];
-
-			A(ii, 19) = l1[1] * l2[0] * l3[1];
-			A(ii, 22) = l1[1] * l2[1] * l3[1];
-			A(ii, 25) = l1[1] * l2[2] * l2[1];
-
-			A(ii, 20) = l1[1] * l2[0] * l3[2];
-			A(ii, 23) = l1[1] * l2[1] * l3[2];
-			A(ii, 26) = l1[1] * l2[2] * l3[2];
+			A(i, 18) = pt1[2];
+			A(i, 20) = -pt1[2] * pt3[0];;
+			A(i, 24) = -pt1[2] * pt2[0];
+			A(i, 26) = (pt1[2] * pt2[0] * pt3[0]);
 
 			//equation number 2
-			A(ii + 1, 0) = l1[2] * l2[0] * l3[0];
-			A(ii + 1, 3) = l1[2] * l2[1] * l3[0];
-			A(ii + 1, 6) = l1[2] * l2[2] * l3[0];
+			A(i + 1, 3) = pt1[0];
+			A(i + 1, 5) = -pt1[0] * pt3[0];
+			A(i + 1, 6) = -pt1[0] * pt2[1];
+			A(i + 1, 8) = pt1[0] * pt2[1] * pt3[0];
 
-			A(ii + 1, 1) = l1[2] * l2[0] * l3[1];
-			A(ii + 1, 4) = l1[2] * l2[1] * l3[1];
-			A(ii + 1, 7) = l1[2] * l2[2] * l3[1];
+			A(i + 1, 12) = pt1[1];
+			A(i + 1, 14) = -pt1[1] * pt3[0];
+			A(i + 1, 15) = -pt1[1] * pt2[1];
+			A(i + 1, 17) = pt1[1] * pt2[1] * pt3[0];
 
-			A(ii + 1, 2) = l1[2] * l2[0] * l3[2];
-			A(ii + 1, 5) = l1[2] * l2[1] * l3[2];
-			A(ii + 1, 8) = l1[2] * l2[2] * l3[2];
+			A(i + 1, 21) = pt1[2];
+			A(i + 1, 23) = -pt1[2] * pt3[0];
+			A(i + 1, 24) = -pt1[2] * pt2[1];
+			A(i + 1, 26) = pt1[2] * pt2[1] * pt3[0];
 
-			A(ii + 1, 18) = -l1[0] * l2[0] * l3[0];
-			A(ii + 1, 21) = -l1[0] * l2[1] * l3[0];
-			A(ii + 1, 24) = -l1[0] * l2[2] * l3[0];
+			//equation number 3
+			A(i + 2, 1) = pt1[0];
+			A(i + 2, 2) = -pt1[0] * pt3[1];
+			A(i + 2, 7) = -pt1[0] * pt2[0];
+			A(i + 2, 8) = pt1[0] * pt2[0] * pt3[1];
 
-			A(ii + 1, 19) = -l1[0] * l2[0] * l3[1];
-			A(ii + 1, 22) = -l1[0] * l2[1] * l3[1];
-			A(ii + 1, 25) = -l1[0] * l2[2] * l3[1];
+			A(i + 2, 10) = pt1[1];
+			A(i + 2, 11) = -pt1[1] * pt3[1];
+			A(i + 2, 16) = -pt1[1] * pt2[0];
+			A(i + 2, 17) = pt1[1] * pt2[0] * pt3[1];
 
-			A(ii + 1, 20) = -l1[0] * l2[0] * l3[2];
-			A(ii + 1, 23) = -l1[0] * l2[1] * l3[2];
-			A(ii + 1, 26) = -l1[0] * l2[2] * l3[2];
+			A(i + 2, 19) = pt1[2];
+			A(i + 2, 20) = -pt1[2] * pt3[1];
+			A(i + 2, 25) = -pt1[2] * pt2[0];
+			A(i + 2, 26) = pt1[2] * pt2[0] * pt3[1];
+
+			//equation number 4
+			A(i + 3, 4) = pt1[0];
+			A(i + 3, 5) = -pt1[0] * pt3[1];
+			A(i + 3, 7) = -pt1[0] * pt2[1];
+			A(i + 3, 8) = pt1[0] * pt2[1] * pt3[1];
+
+			A(i + 3, 13) = pt1[1];
+			A(i + 3, 14) = -pt1[1] * pt3[1];
+			A(i + 3, 16) = -pt1[1] * pt2[1];
+			A(i + 3, 17) = pt1[1] * pt2[1] * pt3[1];
+
+			A(i + 3, 22) = pt1[2];
+			A(i + 3, 23) = -pt1[2] * pt3[1];
+			A(i + 3, 25) = -pt1[2] * pt2[1];
+			A(i + 3, 26) = pt1[2] * pt2[1] * pt3[1];
 
 		}
 
+		/*QString filename = "C:/SFM_Simulation/output/MatA.txt";
+		QFile file(filename);
+		if (file.open(QIODevice::ReadWrite))
+		{
+			QTextStream stream(&file);
+			for (size_t ii = 0; ii < A.rows(); ++ii)
+			{
+				for (size_t jj = 0; jj < A.cols(); ++jj)
+				{
+					stream << QString::number(A(ii, jj));
+					stream << "\t";
+				}
+					stream << "\n";
+			}
+		}
+		file.close();
+		*/
+		Eigen::JacobiSVD<MatrixXd> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
+		//Extract trifocal tensor from the column of V corresponding to
+		//smallest singular value.
+		Eigen::Matrix<double, 27, 1> t = svd.matrixV().col(26);
+
+		//crate the trifocal tensor matrix from the 27 vector
+		Eigen::Matrix<double, 3, 9>T0;
+		Eigen::Matrix<double, 3, 3> T1, T2, T3;
+		T1 << t(0, 0), t(1, 0), t(2, 0), t(3, 0), t(4, 0), t(5, 0), t(6, 0), t(7, 0), t(8, 0);
+		T2 << t(9, 0), t(10, 0), t(11, 0), t(12, 0), t(13, 0), t(14, 0), t(15, 0), t(16, 0), t(17, 0);
+		T3 << t(18, 0), t(19, 0), t(20, 0), t(21, 0), t(22, 0), t(23, 0), t(24, 0), t(25, 0), t(26, 0);
+
+
+		T0.block<3, 3>(0, 0) = T1;
+		T0.block<3, 3>(0, 3) = T2;
+		T0.block<3, 3>(0, 6) = T3;
+
+
+		//Ensure that that trifocal tensor is geomatrically valid by retrieving
+		//its epipoles and performing algebraic minimization
+
+		Eigen::Vector3d e1, e2;
+		epipolsFromTrifocalTensor(T0, e1, e2);
+		//std::cout << "check epipoles from trifocaltensor :" << e1 << "\n" << e2 << std::endl;
+		Eigen::MatrixXd E;
+		computeEFromEpipoles(E, e1, e2);
+		Eigen::VectorXd tFinal;
+		sfm::constraintMinimization(A, E, tFinal);
+
+
+		Eigen::Matrix<double, 3, 9>TFinal;
+		T1 << tFinal(0, 0), tFinal(1, 0), tFinal(2, 0), tFinal(3, 0), tFinal(4, 0), tFinal(5, 0), tFinal(6, 0), tFinal(7, 0), tFinal(8, 0);
+		T2 << tFinal(9, 0), tFinal(10, 0), tFinal(11, 0), tFinal(12, 0), tFinal(13, 0), tFinal(14, 0), tFinal(15, 0), tFinal(16, 0), tFinal(17, 0);
+		T3 << tFinal(18, 0), tFinal(19, 0), tFinal(20, 0), tFinal(21, 0), tFinal(22, 0), tFinal(23, 0), tFinal(24, 0), tFinal(25, 0), tFinal(26, 0);
+		TFinal.block<3, 3>(0, 0) = T1;
+		TFinal.block<3, 3>(0, 3) = T2;
+		TFinal.block<3, 3>(0, 6) = T3;
+
+
+		Matrix3d inv_H2 = H2.inverse();
+		Matrix3d inv_H3 = H3.inverse();
+		Matrix3d Y1 = inv_H2*T1*inv_H3.transpose();
+		Matrix3d Y2 = inv_H2*T2*inv_H3.transpose();
+		Matrix3d Y3 = inv_H2*T3*inv_H3.transpose();
+
+		Matrix3d T1_F = H1(0, 0)*Y1 + H1(1, 0)*Y2 + H1(2, 0)*Y3;
+		Matrix3d T2_F = H1(0, 1)*Y1 + H1(1, 1)*Y2 + H1(2, 1)*Y3;
+		Matrix3d T3_F = H1(0, 2)*Y1 + H1(1, 2)*Y2 + H1(2, 2)*Y3;
+
+		std::cout << "check T: " << T1_F <<" \n\n"<<T2_F<<"  \n\n"<<T3_F<< std::endl;
 	}
-	*/
 
+	
 	////////////////////////////////////////////////////////////
 	/*bool TrifocalTensor::computeTrifocalTensorFromLinesLinear(const std::vector<Eigen::Vector4d> &vLines1,
 								const std::vector<Eigen::Vector4d> &vLines2,
