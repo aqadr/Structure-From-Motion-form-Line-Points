@@ -92,11 +92,6 @@ public:
 		const std::vector<Vector2d> &ptsFrame2,
 		const std::vector<Vector2d> &ptsFrame3);
 
-	//! compute mean and variance of a point cloud
-	static void computeMeanAndVariance(const std::vector<VectorXd> &vPts,
-		VectorXd &mean,
-		VectorXd &variance);
-
 	//! normalize the 2D lines using their end points
 	static bool normalize2DLines(std::vector<std::pair<Eigen::Vector2d,
 		Eigen::Vector2d> > &vPtsEndPair,
@@ -111,7 +106,6 @@ public:
 	//! @output e2 = 3x1 the epipole in image 2
 	//! @output e3 = 3x1 the epipole in image 3
 	static void epipolsFromTrifocalTensor(Eigen::Matrix<double, 3, 9> T, Vector3d &e1, Vector3d &e2);
-
 
 	
 	//! Function to build the relationship matrix which represent
