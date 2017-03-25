@@ -92,15 +92,7 @@ public:
 		const std::vector<Vector2d> &ptsFrame2,
 		const std::vector<Vector2d> &ptsFrame3);
 
-	//! normalize the 2D lines using their end points
-	static bool normalize2DLines(std::vector<std::pair<Eigen::Vector2d,
-		Eigen::Vector2d> > &vPtsEndPair,
-		Matrix3d &T);
-
-	//! normalize the 2D lines using their end points
-	static bool normalize2DLines(std::vector<Eigen::Vector4d> &vPtsEnd,
-		Matrix3d &T);
-
+	
 	//!function for computing the epipole from trifocal tensor T. Refer to Hartley and Zisserman p373
 	//! @param T   = 3x3x3 trifocal tensor is a 3x9 matrix
 	//! @output e2 = 3x1 the epipole in image 2
