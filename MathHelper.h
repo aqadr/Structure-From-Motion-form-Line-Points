@@ -45,7 +45,7 @@ using namespace Eigen;
 namespace sfm
 {
 	template<typename PType>
-	static void lineNormalizedCoordinate(const Matrix<PType, 3, 3> &K, Matrix<PType, 4, 1> &EndPtsIm);
+	void lineNormalizedCoordinate(const Matrix<PType, 3, 3> &K, Matrix<PType, 4, 1> &EndPtsIm);
 
 	bool normalize2DPoints(std::vector<Eigen::Vector2d> &vPts, Eigen::Matrix3d &T);
 
