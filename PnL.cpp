@@ -73,9 +73,9 @@ bool PnL::computeRotationP3L(const std::vector<Matrix<double, 6, 1> > &v3Lines,
 	Matrix<double, 4, 1> lEndPtsL0 = v2Lines[0];
 	Matrix<double, 4, 1> lEndPtsL1 = v2Lines[1];
 	Matrix<double, 4, 1> lEndPtsL2 = v2Lines[2];
-	Line2D::lineNormalizedCoordinate(K, lEndPtsL0);
-	Line2D::lineNormalizedCoordinate(K, lEndPtsL1);
-	Line2D::lineNormalizedCoordinate(K, lEndPtsL2);
+	sfm::lineNormalizedCoordinate(K, lEndPtsL0);
+	sfm::lineNormalizedCoordinate(K, lEndPtsL1);
+	sfm::lineNormalizedCoordinate(K, lEndPtsL2);
 
 	Vector3d p1(lEndPtsL0(0, 0), lEndPtsL0(1, 0), 1);
 	Vector3d p2(lEndPtsL0(2, 0), lEndPtsL0(3, 0), 1);
