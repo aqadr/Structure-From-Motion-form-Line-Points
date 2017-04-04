@@ -4,6 +4,6 @@ List of algorithms:
   2. Camera pose estimation from the minimum 3 3D-2D lines correspondences from the papers: 
     a. "Pose Determination from Line-to-Plane Correspondences: Existance Condition and Closed Form Solutions"
     b. "Pose Estimation from Line Correspondences: A Complete Analysis and A Series of Solutions"
-   
+   ** Need to implement RANSAC and the least square methods for robust pose estimation 
 Dependencies:
   Eigen linear algebra library
