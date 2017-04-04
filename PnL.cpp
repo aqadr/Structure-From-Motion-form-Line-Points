@@ -30,7 +30,7 @@
 ****************************************************************************/
 
 /**
-* @file PnL.h
+* @file PnL.cpp
 * @brief Pose from 3D-2D line correspondences from the paper
 * @brief 
 * @author Ashraf Qadir, <ashraf.qadr@gmail.com>
